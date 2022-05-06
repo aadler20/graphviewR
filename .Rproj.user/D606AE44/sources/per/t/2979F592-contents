@@ -1,0 +1,112 @@
+rootDir = "C:/Users/Hao Wang/Documents/graphviewr"
+
+#* @filter route_filter
+function(req, res){
+  if (!is.null(req)){
+    req_attrs = ls(req)
+    for (req_attr in req_attrs){
+      if (req_attr != 'pr') print(paste(req_attr, mget(req_attr, req), sep = ':'))
+    }
+    # postBody
+    # REQUEST_METHOD
+    if (req$PATH_INFO == '/graphviewR/auth/login'){
+      if (req$REQUEST_METHOD != 'POST'){
+        res$status <- 401 # error
+        return(list(error = 'login method shoule be of type POST!'))
+      } else {
+        postBody = RJSONIO::fromJSON(req$postBody)
+        username = postBody['username']
+        password = postBody['password']
+        if (username == 'graphviewr' && password == 'graphviewr'){
+          res$status <- 200 # success
+          return(list(token = 'graphviewr'))
+        } else{
+          # res$status <- 401 # error
+          # return(list(error = 'login failed. Wrong password.'))
+          return
+        }
+      }
+    } else if (req$PATH_INFO == '/graphviewR/user/info'){
+      res$status <- 200 # success
+      return(list(result = list(
+        id = '4291d7da9005377ec9aec4a71ea837f',
+        name = 'graphviewr',
+        username = 'graphviewr',
+        password = 'graphviewr',
+        avatar = 'https://gw.alipayobjects.com/zos/rmsportal/jZUIxmJycoymBprLOUbT.png',
+        status = 1,
+        telephone = '15142444985',
+        lastLoginIp = '27.154.74.117',
+        lastLoginTime = 1534837621348,
+        creatorId = 'admin',
+        createTime = 1497160610259,
+        merchantCode = 'TLif2btpzg079h15bk',
+        deleted = 0,
+        roleId = 'dashboard',
+        role = list(permissions = c('dashboard', 'form', 'table', 'profile', 'overview', 'result', 'exception', 'user')),
+        # role = list(permissions = c('admin')),
+        lang = 'zh-CN',
+        token = 'graphviewr')))
+    } else if (req$PATH_INFO == '/graphviewR/package/getPackageTable') {
+      print(paste0('rest type of getPackageTable: ', req$REQUEST_METHOD))
+      # data
+      localPkgs = data.frame(installed.packages(.Library, priority = 'base'), width = 100)
+      localPkgs = data.frame(localPkgs, Description = sapply(localPkgs$Package, function(x) packageDescription(x)$Description))
+      # columns with or without last column description
+      columns = data.frame(title = names(localPkgs), dataIndex = names(localPkgs), key = names(localPkgs))
+      return (list(columns = jsonlite::toJSON(columns, dataframe = 'row', na = 'string'),
+        data = jsonlite::toJSON(localPkgs, dataframe = 'row', na = 'string')))
+    } else if (req$PATH_INFO == '/graphviewR/package/getPackageGraph') {
+      print(paste0('rest type of getPackageGraph: ', req$REQUEST_METHOD))
+      print(paste0('query string of getPackageGraph: ', req$QUERY_STRING))
+      pkgs = NULL # default
+      if (nchar(req$QUERY_STRING) > 0){
+        pkgs = sub('\\?packageName=', '', req$QUERY_STRING)
+      }
+      # data
+      graphData = getPackageGraph(pkgs = pkgs, suggests = ifSuggest)
+      return (list(combos = graphData$combos, edges = graphData$edges))
+    } else if (req$PATH_INFO == '/graphviewR/package/getFunctionGraph') {
+      print(paste0('query string of getFunctionGraph: ', req$QUERY_STRING))
+      pkg = 'stats' # default
+      if (nchar(req$QUERY_STRING) > 0){
+        pkg = sub('\\?packageName=', '', req$QUERY_STRING)
+      }
+      # data
+      graphData = getFunctionGraph(pkg = pkg)
+      return (list(nodes = jsonlite::toJSON(graphData$nodes, dataframe = 'row'),
+                    edges = jsonlite::toJSON(graphData$edges, dataframe = 'row'))
+      )
+    } else if (req$PATH_INFO == '/graphviewR/package/getPackageInfo') {
+      pkg = 'stats' # default
+      if (length(req$argsQuery) > 0) pkg = req$argsQuery[[1]]
+      # data
+      packageInfo = getPackageInfo(pkg)
+      return (list(packageInfo = packageInfo))
+    } else if (req$PATH_INFO == '/graphviewR/function/getFunctionInfo') {
+      print(paste0('query string of getFunctionInfo: ', req$QUERY_STRING))
+      pkgfunc = c('stats', 'lm') # default
+      if (nchar(req$QUERY_STRING) > 0){
+        pkgfunc = strsplit(sub('\\?functionName=', '', req$QUERY_STRING), '::')[[1]]
+      }
+      # data
+      htmlData = getFunctionInfo(pkgfunc)
+      return (list(htmlData = htmlData))
+    } else if (req$PATH_INFO == '/graphviewR/function/getFunctionHelp') {
+      print(paste0('query string of getFunctionHelp: ', req$QUERY_STRING))
+      pkgfunc = c('stats', 'lm') # default
+      if (nchar(req$QUERY_STRING) > 0) {
+        query_string = sub('\\?functionName=', '', req$QUERY_STRING)
+        if (length(grep('::', query_string)) > 0)
+          pkgfunc = strsplit(query_string, '::')[[1]]
+      }
+      # data
+      helpData = getFunctionHelp(pkgfunc)
+      print(helpData)
+      return (list(helpData = helpData))
+    } else {
+      return
+    }
+  }
+  return
+}

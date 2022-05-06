@@ -1,0 +1,26 @@
+{
+    "id": "2979F592",
+    "path": "~/graphviewr/R/plumber.R",
+    "project_path": "R/plumber.R",
+    "type": "r_source",
+    "hash": "818678946",
+    "contents": "",
+    "dirty": false,
+    "created": 1641463147898.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "81,61",
+        "scrollLine": "75"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1645439670,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1645439670688,
+    "read_only": false,
+    "read_only_alternatives": []
+}

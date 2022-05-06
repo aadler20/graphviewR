@@ -1,0 +1,181 @@
+# 2022-02-21 learn plumber and make graphviewr
+## changes (in filters) to req will be available to all subsequent filters and endpoints processing this request
+## filters have three results: return; error; forward()
+## 静态资源 @assets ./files/static (默认为 = /public) /
+## hook function: preroute preserialize postserialize postroute不需要使用
+# to build graphviewr
+# using RJSONIO or rjson to deal with character<->json transfrom
+## parse json with R and c two versions, very helpful: https://github.com/alexcb/rjson
+# to build statistics knowledge graph from R
+# some ideas from https://github.com/duncantl/CodeDepends
+# packages to learn: Matrix, lme4, kernlab, sp and bioconductor
+# in S4 style: see advanced R and
+# https://kasperdanielhansen.github.io/genbioconductor/html/R_S4.html
+# use setClass setGeneric setMethod ... functions
+# codeTypes (interesting) to be rewritten using knowledge base
+
+# R using tools::startDynamicHelp call C_startHTTPD to start server
+
+# very good idea in codeDepends http://www.omegahat.net/CodeDepends/
+
+# key word: domain knowledge graph
+
+# working first then framing and packaging
+# working procedure:
+# 1
+## miniCRAN + *CodeDepends* + G6 + plumber
+## miniCRAN
+### https://www.r-bloggers.com/2014/10/introducing-minicran-an-r-package-to-create-a-private-cran-repository/
+## make clear the working-flow of makeCallGraph
+### makeCallGraph <- getFunctions + findGlobals + callGraph class
+# 2 graph to json
+## jsonHandle.R
+# 3 json to g6 (let us see g6's data format)
+## ali's KG https://zhuanlan.zhihu.com/p/309424089
+# 3.5 make graph in json format from R directly, see makeGraph.R
+# 3.6 g6 visualization https://g6.antv.vision/zh/docs/manual/tutorial/
+# 3.7 R package graphviewr would be very helpful
+# 3.8 mode behavior state
+# 4 graph to knowledge graph in 3's format
+# 5 graph to neo4j?
+
+# problem to solve
+## how to connect closure structure with knowledge?
+## describe a function: formals() body() environment()
+## findGlobals <- collectUsage <-
+## core function: Primitive functions
+
+# package LocalView 2021-12-31
+# one function lv()
+# using plumber
+## https://rviews.rstudio.com/2018/07/23/rest-apis-and-plumber/
+## example of httr https://stackoverflow.com/questions/51232790/calling-a-rest-api-in-r
+## multi-thread
+### https://stackoverflow.com/questions/64013318/creating-an-api-multi-thread-in-r
+### https://www.rstudio.com/resources/rstudioconf-2020/we-re-hitting-r-a-million-times-a-day-so-we-made-a-talk-about-it/
+### https://www.rstudio.com/resources/rstudioconf-2020/
+### R and Node https://colinfay.me/node-r-package/
+### JS for R https://book.javascript-for-r.com/
+### viz with JS and R https://bioconnector.github.io/workshops/r-interactive-viz.html
+### RestRserve https://github.com/rexyai/RestRserve
+### loadTest https://opensource.t-mobile.com/blog/posts/loadtest/
+### use this: https://github.com/r-lib/usethis
+# using R with antdv and g6 to build LocalView of R
+
+# source('R/makeFuncGraph.R')
+# makeFuncGraph.R can not be sourced here so define
+# test
+# internal functions
+source('R/makePkgGraph.R')
+source('R/assertions.R')
+source('R/internal.R')
+source('R/pkgDepTools.R')
+source('R/pkgDep.R')
+#require(graph)
+require(jsonlite)
+# getSlots('CallGraph')
+# nodes        edgeL     edgeData     nodeData   renderInfo    graphData
+# "vector"       "list"   "attrData"   "attrData" "renderInfo"       "list"
+# % ---- Library Graph ---- % #
+suggests = TRUE; enhances = FALSE; includeBasePkgs = FALSE
+orig_pkgs = 'TSA'
+# orig_pkgs = 'stats'
+# orig_pkgs = 'tseries'
+# orig_pkgs = c('TSA', 'stats')
+# orig_pkgs = c('astsa', 'stats')
+# orig_pkgs = c('TSA', 'tseries')
+# orig_pkgs = c('TSA', 'astsa')
+# orig_pkgs = c('TSA', 'astsa', 'stats')
+# orig_pkgs = c('CodeDepends', 'codetools')
+pkg = orig_pkgs; # repos = 'https://cran.rstudio.com'
+availPkgs = installed.packages()
+result = getPackageGraph(pkg = orig_pkgs, availPkgs = availPkgs)
+libNodes = result$packages
+libEdges = result$edges
+# * hidden ret for test
+# libGraph = result$libGraph
+# plot(libGraph)
+# % --- Functiion Graph --- % #
+orig_pkgs = libNodes
+for (pkg in orig_pkgs) require(pkg, character.only = TRUE)
+gd = makeFuncGraph(paste0("package:", orig_pkgs)) # gd$g: object of class CallGraph
+save(gd, file = 'data/gd.RData')
+#gd$nodes_df$id = as.character(gd$nodes_df$id)
+nodes = jsonlite::toJSON(gd$nodes_df, dataframe = 'rows')
+gd$edges_df$source = as.character(gd$edges_df$source); gd$edges_df$target = as.character(gd$edges_df$target);
+edges = jsonlite::toJSON(data.frame(eid = paste0('e', 1:nrow(gd$edges_df)), gd$edges_df), dataframe = 'rows')
+# g6json = paste0('{"nodes":', nodes, ',"edges":', edges, '}' )
+# write(g6json, paste0('data/g6json/', graph_pkg, '.json'))
+# only for test
+g6json = paste0('var data = [{"nodes":', nodes, ',"edges":', edges, '}];' )
+if (length(orig_pkgs) == 1)
+	write(g6json, paste0('data/g6json/', orig_pkgs, '.js'))
+if (length(orig_pkgs) == 2)
+	write(g6json, paste0('data/g6json/', paste(orig_pkgs, collapse = '_'), '.js'))
+if (length(orig_pkgs) > 2)
+	write(g6json, paste0('data/g6json/funcGraph.js'))
+
+# background
+# (0) problem arised
+# https://stackoverflow.com/questions/53873740/r-finding-class-inheritance-structure-within-an-r-package
+## also classGraph
+# https://stackoverflow.com/questions/4795982/generating-a-call-graph-in-r
+# https://stackoverflow.com/questions/11872879/finding-out-which-functions-are-called-within-a-given-function
+## edward's solution is ok.
+## evaluate the solutions based on makeCallGraph function.
+# possible solution:
+## check different levels of environment: http://adv-r.had.co.nz/Environments.html
+## learn where function
+i = 0
+where <- function(name, env = parent.frame()) {
+  i <<- i + 1
+  print(paste0('i = ', i))
+  #print(env)
+  print('------------------------------')
+  if (identical(env, emptyenv())) {
+    # Base case
+    stop("Can't find ", name, call. = FALSE)
+
+  } else if (exists(name, envir = env, inherits = FALSE)) {
+    # Success case
+    env
+
+  } else {
+    # Recursive case
+    where(name, parent.env(env))
+
+  }
+}
+# (0.5) using r functions like findGlobals or lsf.str
+# (1) parse code: findGlobals (no generic) + getParseData (generic)
+# https://stackoverflow.com/questions/27755207/reliably-extract-names-of-r-functions-from-a-text-file
+# https://www.r-bloggers.com/2010/09/r-function-of-the-day-foodweb-2/
+## mvbutils::foodweb is ok but visualization is bad
+## miniCRAN: package dependencies, good example for graph visualization; todo: graph -> g6
+# (2) graph viz: RGraphViz
+## https://stackoverflow.com/questions/44143110/visualizing-r-function-dependencies
+# (3) r and js: r2d3 htmlwidgets wordcloud2 ...
+## very good reference: visNetwork and DependenciesGraph
+## -- first build package miniCRAN (very interesting, depgraph only for visu) and then functions
+### https://github.com/andrie/miniCRAN
+### https://github.com/crsh/depgraph/tree/main/R
+### https://github.com/datastorm-open/DependenciesGraphs
+
+# learn R: http://adv-r.had.co.nz/Functionals.html#functionals-math
+# write books: https://r-pkgs.org/preface.html
+# library(dplyr)
+# tmp <- getParseData(parse("R/plumber.R", keep.source=TRUE))
+# tmp %>% filter(token=="SYMBOL_FUNCTION_CALL")
+
+# useful slots
+## nodes: name of nodes
+## nodeData: data associated with nodes
+## edgeL: edges
+## edgeData: data associated with edges eg. weight
+# *todo: learn the structure design of bnlearn
+# library(bnlearn)
+# data(learning.test)
+# net = hc(learning.test)
+# bn = bn.fit(net, learning.test)
+
+

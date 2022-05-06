@@ -1,0 +1,9 @@
+grenv = new.env(parent = .GlobalEnv) # set environment for this process
+pkgFileNames = c('package.rds', 'Rd.rds', 'vignette.rds')
+ifSuggest = FALSE # all these to be listed in env.R
+source('R/getPackageGraph.R') # getPackageGraph API
+source('R/getPackageInfo.R') # getFunctionGraph getFunctionList API
+source('R/getFunctionInfo.R') # getFunctionInfo getFunctionHelp API
+library(plumber)
+pr("R/plumber.R") %>%
+  pr_run(port=6090, host="0.0.0.0")

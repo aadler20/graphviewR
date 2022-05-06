@@ -1,0 +1,13 @@
+Package: graphviewR
+Type: Package
+Title: Display R packages and functions in interactive graph
+Version: 0.0.0.90000
+Author: Hao Wang
+Maintainer: Hao Wang <h.wang@aliyun.com>
+Description: Display local installed R packages and functions in interactive graph structures.  
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL
+Depends: miniCRAN, plumber
+Imports: codetools, graph, tools, utils
+Encoding: UTF-8
+LazyData: true

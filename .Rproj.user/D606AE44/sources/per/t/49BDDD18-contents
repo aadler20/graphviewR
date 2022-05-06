@@ -1,0 +1,99 @@
+#' @param pkg package name
+#' @return help site pkg/html/00Index.html
+#'
+getPackageInfo <- function(pkg) {
+  path = find.package(pkg, quiet = TRUE)
+  if (length(path) > 0) {
+	  assign(pkg, new.env(parent = grenv), envir = grenv) # create a new env for loading databases
+	  # htmlLines = readLines(paste(path, pkg, 'html', '00Index.html', sep = .Platform$file.sep))
+	  #htmlData = lapply(htmlLines, function(x) {
+	  #	refPat = "<a href=\"(([^:]+))?\\.html\">"
+	  #	ifMatch = regexec(refPat, x)
+	  #	if (ifMatch[[1]][1] == -1) x else gsub(refPat, sprintf("<a href=\"/function/%s::%s\">", pkg, regmatches(x, ifMatch)[[1]][2]), x)
+	  # })
+	  # read rds files in Meta
+	  metaPath = paste(path, 'Meta', sep = .Platform$file.sep)
+	  fs = list.files(metaPath)
+	  # read rds : features.rds; hsearch.rds; links.rds; nsInfo.rds; package.rds; Rd.rds; vignette.rds
+	  # features.rds: internalsID
+	  # hsearch.rds: [[1]] functions with following fields - Package LibPath ID Name Title Topic Encoding;
+	  ## [[2]] all classes and methods [ functionList - to be displayed in frontend ]
+	  ## [[3]] keywords [[4]] concepts
+	  # links.rds: all html links [ to be used in frontend ] for hsearch.rds.(2)
+	  # nsInfo.rds: imports, exports, exportPatterns, importClasses, importMethods, exportClasses, exportMethods,
+	  ## exportClassPatterns, dynlibs, nativeRoutines, S3methods
+	  # package.rds: DESCRIPTION [description - to be displayed in frontend], Built, Rdepends, Rdepends2, Depends, Suggests, Imports, LinkingTo
+	  # Rd.rds: [ tab[Functions] to be displayed in frontend ] Rd files with following fields: File,
+	  ## Name [ to be checked with hsearch.rds[[2]] help(package = pkg, help_type = 'text') ],
+	  ## Type, Title, Encoding, Aliases, Concepts, Keywords
+	  # vignette.rds: [ to be displayed with hyperlinks in frontend ] vignette with following fields:  File, Title, PDF, R, Depends, Keywords
+	  packageInfo = vector('list', length(pkgFileNames)); names(packageInfo) = pkgFileNames
+	  for (pfn in pkgFileNames) {
+	    if (pfn %in% fs) {
+	      if (pfn == 'package.rds') {
+			    pkgDesc = readRDS(file.path(metaPath, pfn))$DESCRIPTION
+			    packageInfo[[pfn]] = data.frame(Name = names(pkgDesc), Value = pkgDesc)
+		  }
+	      if (pfn == 'Rd.rds') {
+			  # Rd.rds has following columns: File, Name, Type, Title, Encoding, Aliases, Concepts, Keywords
+			  # We choose not to display File and Encoding in frontend
+			  # Keywords: statistical keywords to be added
+			  packageInfo[[pfn]] = readRDS(file.path(metaPath, pfn))[,c('Name', 'Title', 'Type', 'Concepts', 'Aliases', 'Keywords')]
+			  for (i in c('Concepts', 'Aliases', 'Keywords')) {
+				  packageInfo[[pfn]][[i]]= sapply(packageInfo[[pfn]][[i]], function(x) paste(x, collapse = ', '))
+			  }
+		  }
+	      if (pfn == 'vignette.rds') packageInfo[[pfn]] = readRDS(file.path(metaPath, pfn))
+	    }
+	  }
+	  names(packageInfo) = gsub('.rds', '', names(packageInfo))
+    return (packageInfo)
+  }
+  return (sprintf("<html><head><body><h3 style='color:#5B8FF9;'>Warning: </h3>
+  <h4>The %s package is not installed yet! <br/> please use install.packages(%s) to install this package.
+          </h4></body></head></html>", pkg, pkg))
+}
+
+getPackageFunctions <- function(pkg)
+{
+  envns = loadNamespace(pkg) # if pkg exists then no effect
+  print(loadNamespace(pkg))
+  objs = objects(envns)
+  funs = lapply(objs, function(x) {
+    f = get(x, envns)
+    if(is.function(f)) f else NULL
+  })
+  names(funs) = objs
+  funs[!sapply(funs, is.null)]
+}
+
+#' @param obj result of getPackageFunctions: functions in the package
+#'
+makeFunctionGraph <- function(obj, recursive = recursive, funNames = names(obj), packages = packages, ...) {
+  # use id to identify nodes since functions from different packages might have same name
+  edges = data.frame()
+  ids = as.character(1:length(funNames))
+  nodes = data.frame(id = ids, label = funNames, comboId = packages)
+  lapply(seq_along(obj), function(f) {
+    calls = codetools::findGlobals(obj[[f]], merge = FALSE)$functions
+    tids = match(calls[calls %in% funNames], funNames)
+    if (length(tids) > 0) {
+      edges <<- rbind(edges, data.frame(source = tids, sourceName = funNames[tids], target = f, targetName = funNames[f]))
+    }
+  })
+  edges$source = as.character(edges$source); edges$target = as.character(edges$target)
+  return (list(nodes = nodes, edges = edges))
+}
+
+#' return combos for packages; nodes for functions; edges for function dependencies
+#'
+getFunctionGraph <- function(pkg, recursive = TRUE) {
+  assign(pkg, new.env(parent = grenv), envir = grenv)
+  funs = getPackageFunctions(pkg)
+  if (length(funs) == 0)  # in case some packages do not have any functions
+    return (list(nodes = data.frame(), edges = data.frame()))
+  return (
+    makeFunctionGraph(
+      obj = unlist(funs, recursive = FALSE), recursive = recursive, packages = rep(rep(pkg, length(funs)), sapply(funs, length)))
+    )
+}
