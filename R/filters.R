@@ -24,6 +24,23 @@ show_args <- function(req) {
   # continue on
   plumber::forward()
 }
+# eval Code
+unjson_classes <- c("lm", "qr", "summary.lm", "try-error")
+eval_code <- function(req, res) {
+  post_body <- jsonlite::fromJSON(req$postBody)
+  code <- post_body[["code"]]
+  code <- gsub("\r", "", code)
+  print(code)
+  result <- try(lapply(parse(text = code), eval), TRUE)
+  result <- lapply(result, function(x) {
+    if (class(x) %in% prim_classes) {
+      return(data.frame(Class = class(x),
+        Value = paste(as.character(x), collapse = ",")))
+    } else return(data.frame(Class = names(x),
+      Value = as.character(x)))
+  })
+  list(data = result)
+}
 # context-specific filters
 get_function_help <- get("get_function_help")
 function_help <- function(req, res) {
@@ -114,21 +131,16 @@ first_letters <- function(req, res) {
 }
 users <- get("users") # get user info from env settings
 user_login <- function(req, res) {
-  if (req$REQUEST_METHOD != "POST") {
-    res$status <- 401 # error
-    list(error = "Suggestion: login should be defined as a POST method.")
+  post_body <- jsonlite::fromJSON(req$postBody)
+  userid <- post_body$"username"
+  password <- post_body$"password"
+  if (userid %in% users$id &&
+    password == users[users$id == userid, ]$password) {
+    res$status <- 200 # success
+    list(result = list(token = userid))
   } else {
-    post_body <- jsonlite::fromJSON(req$postBody)
-    userid <- post_body$"username"
-    password <- post_body$"password"
-    if (userid %in% users$id &&
-      password == users[users$id == userid, ]$password) {
-      res$status <- 200 # success
-      list(token = userid)
-    } else {
-      res$status <- 401 # Unauthorized
-      list(error = "password not correct.")
-    }
+    res$status <- 401 # Unauthorized
+    list(error = "password not correct.")
   }
 }
 user_register <- function(req, res) {
@@ -183,7 +195,8 @@ router_filter <- function(req, res) {
     "/graphviewR/task/update" = update_task(req, res),
     "/graphviewR/log/list" = list_log(req, res),
     "/graphviewR/log/hours" = hours_log(req, res),
-    "/graphviewR/log/trend" = trend_log(req, res)
+    "/graphviewR/log/trend" = trend_log(req, res),
+    "/graphviewR/editor/eval" = eval_code(req, res)
   )
 }
 specific_filters <- list(

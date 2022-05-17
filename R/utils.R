@@ -1,3 +1,5 @@
+prim_classes <- c("integer", "double", "character", "numeric",
+  "matrix", "data.frame")
 trim_rd_exp <- function(rd_exp) {
   if (length((ind <- grep("^[\n]", rd_exp))) > 0)
     rd_exp <- rd_exp[-ind]
