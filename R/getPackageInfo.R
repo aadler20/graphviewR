@@ -1,5 +1,7 @@
 grenv <- get("grenv")
 pkg_rds_files <- get("pkg_rds_files")
+demo_dir <- get("demo_dir")
+
 #' @param pkg package name
 #' @return package info in .rds files
 #'
@@ -89,4 +91,21 @@ make_function_graph <- function(pkg, merge = FALSE, ...) {
 get_function_graph <- function(pkg) {
   assign(pkg, new.env(parent = grenv), envir = grenv)
   return(make_function_graph(pkg))
+}
+
+
+#' @param pkg package name
+#' @return package demo code
+#'
+get_package_demo <- function(pkg) {
+  examples_dir <- paste(demo_dir, pkg, sep = .Platform$file.sep)
+  file_dir <- paste(examples_dir, "demo.r", sep = .Platform$file.sep)
+  if (file.exists(file_dir)) {
+    examples <- paste(readLines(file_dir), collapse = "\n")
+  } else {
+    examples <- paste(sprintf("# demo for package %s do not exist. ", pkg),
+    sprintf("# please use help(package = '%s') for more info.", pkg),
+      sep = "\n")
+  }
+  return(list(fileDir = file_dir, examples = examples))
 }

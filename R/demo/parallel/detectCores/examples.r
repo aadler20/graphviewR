@@ -1,0 +1,2 @@
+detectCores()
+detectCores(logical = FALSE)

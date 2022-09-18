@@ -78,19 +78,38 @@ add_dep_type <- function(p,
 
 # get local packages given priorities and s_letters
 get_local_packages <- function(priorities, s_letters) {
+  print(priorities)
+  print(s_letters)
+  if (length(priorities) == 0 | length(s_letters) == 0) {
+     return(list(localPackages = NULL, colNames = NULL))
+  }
   if (!"non" %in% priorities) {
-    dat <- installed.packages(priority = priorities)[, ]
+    dat0 <- installed.packages(priority = priorities)
   } else {
-    dat <- installed.packages()[, ]
+    dat <- installed.packages()
     priorities <- priorities[priorities != "non"]
     dat0 <- dat[is.na(dat[, "Priority"]), ]
     if (length(priorities) < 2) {
       dat0 <- rbind(dat0, dat[!is.na(dat[, "Priority"]) &
         dat[, "Priority"] == priorities, ])
-      dat <- dat0
     }
   }
-  return(dat)
+  # first letters
+  if (length(s_letters) > 0) {
+    if ("all" %in% s_letters) {
+      return(dat0)
+    } else {
+      dat <- character(0)
+      lapply(dat0[, "Package"], function(x) {
+        if (tolower(substr(x, 1, 1)) %in% s_letters |
+          toupper(substr(x, 1, 1)) %in% s_letters) {
+            dat <<- rbind(dat, dat0[x, ])
+        }
+      })
+      rownames(dat) <- dat[, "Package"]
+    }
+  }
+  return(list(localPackages = dat, colNames = colnames(dat)))
 }
 
 #' Create dependency graph from local installed packages.

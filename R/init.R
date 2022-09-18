@@ -1,7 +1,10 @@
 source("R/env.R") # set global values
+source("R/filters.R")
 source("R/utils.R") # utils
-source("R/filters.R") # add filters
-gr <- pr() # Plumber instance
+gr <- pr("R/plumber.R") %>%
+  pr_static("/", "../graphviewr/dist") %>%
+  pr_filter("api_filters", api_filters,
+    serializer = serializer_unboxed_json())
 gr$registerHooks(# logging ref. https://github.com/sol-eng/plumber-logging
   list(
     preroute = function() {
@@ -18,6 +21,4 @@ gr$registerHooks(# logging ref. https://github.com/sol-eng/plumber-logging
     }
   )
 )
-gr$setSerializer(serializer_unboxed_json())
-lapply(names(specific_filters), function(x) gr$filter(x, specific_filters[[x]]))
-gr$run() # run server
+gr$run()

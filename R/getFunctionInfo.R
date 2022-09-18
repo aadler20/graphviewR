@@ -1,6 +1,9 @@
+source("R/utils.R")
 grenv <- get("grenv")
 trim_rd_exp <- get("trim_rd_exp")
 info404 <- get("info404")
+demo_dir <- get("demo_dir")
+href2vue <- get("href2vue")
 #' @param pkg package name
 #' @return directory of help file
 lazy_load_db <- function(pkg) {
@@ -15,6 +18,22 @@ lazy_load_db <- function(pkg) {
 
 #' @param pkg package name
 #' @param func function name
+#' @return function Examples in demo/pkg/func/examples
+#'
+get_function_examples <- function(pkg, func) {
+  examples_dir <- paste(demo_dir, pkg, func, sep = .Platform$file.sep)
+  file_dir <- paste(examples_dir, "examples.r", sep = .Platform$file.sep)
+  if (file.exists(file_dir)) {
+    examples <- paste(readLines(file_dir), collapse = "\n")
+  } else {
+    examples <- paste("# Examples do not exist. ",
+      sprintf("# please use ??('%s') for more info.", func), sep = "\n")
+  }
+  return(list(fileDir = file_dir, examples = examples))
+}
+
+#' @param pkg package name
+#' @param func function name
 #' @return function help in pkg/html/'func'.html
 #'
 get_function_info <- function(pkg, func) {
@@ -24,16 +43,39 @@ get_function_info <- function(pkg, func) {
     if (funcfile %in% dir(paste(path, "html", sep = .Platform$file.sep))) {
       func_lines <- readLines(paste(path, "html", funcfile,
         sep = .Platform$file.sep))
+      func_lines <- href2vue(func_lines, pkg)
+      demo_lines <- character(0)
       pre_starts <- grep("^<pre>", func_lines)
       pre_ends <- grep("^</pre>", func_lines)
       if (length(pre_starts) > 0 && length(pre_starts) == length(pre_ends)) {
         for (i in seq_along(pre_starts)) {
-          if (pre_starts[i] + 1 < pre_ends[i])
+          if ((length(grep("Usage", func_lines[pre_starts[i] - 2])) > 0 |
+            length(grep("Usage", func_lines[pre_starts[i] - 1])) > 0) &
+            pre_starts[i] + 1 < pre_ends[i]) {
             func_lines[(pre_starts[i] + 1):(pre_ends[i] - 1)] <-
               paste0(func_lines[(pre_starts[i] + 1):(pre_ends[i] - 1)], "</br>")
+          }
+          if ((length(grep("Examples", func_lines[pre_starts[i] - 2])) > 0 |
+            length(grep("Examples", func_lines[pre_starts[i] - 1])) > 0) &
+            pre_starts[i] + 1 < pre_ends[i]) {
+            for (j in (pre_starts[i] + 1):(pre_ends[i] - 1)) {
+              demo_lines <- c(demo_lines, func_lines[j])
+            }
+            if (!dir.exists(paste(demo_dir, pkg, func,
+              sep = .Platform$file.sep))) {
+              examples_dir <- paste(demo_dir, pkg, func,
+                sep = .Platform$file.sep)
+              dir.create(examples_dir, recursive = TRUE)
+              writeLines(lt2sign(demo_lines), paste(examples_dir, "examples.r",
+                sep = .Platform$file.sep))
+            }
+            func_lines[(pre_starts[i] + 1):(pre_ends[i] - 1)] <-
+              paste0(func_lines[(pre_starts[i] + 1):(pre_ends[i] - 1)], "</br>")
+          }
         }
       }
-      return(paste(func_lines, collapse = ""))
+      return(list(func_lines = paste(func_lines, collapse = ""),
+        demo_lines = demo_lines))
     } else {
         return(list(flag = info404, tips = sprintf(
         "The help file for function '%s' can not be found in '%s' directory.
