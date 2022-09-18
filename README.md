@@ -9,5 +9,3 @@ View dependencies of R packages and functions in interactive graph Using plumber
 2. Open graphviewR in your IDE.
 3. Run init.R.
 4. Open or follow the link (http://localhost:6090) in your browser.
-
-
