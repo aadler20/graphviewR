@@ -1,7 +1,7 @@
 # graphviewR
 
 #### Introduction
-View dependencies of R packages and functions in interactive graph Using plumber and vue.
+View dependencies of R packages and functions in interactive graph using plumber and vue.
 
 #### Run this project
 
