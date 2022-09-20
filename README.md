@@ -3,7 +3,7 @@
 #### Introduction
 View dependencies of R packages and functions in interactive graph using plumber and vue.
 
-#### Run this project
+#### Getting started
 
 1. Install R >= 3.6 (https://cran.r-project.org/bin/windows/base/old/3.6.3/).
 2. Open graphviewR in your IDE.
