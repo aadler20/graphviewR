@@ -2,7 +2,7 @@ source("R/env.R") # set global values
 source("R/filters.R")
 source("R/utils.R") # utils
 gr <- pr("R/plumber.R") %>%
-  pr_static("/", "../graphviewr/dist") %>%
+  pr_static("/", "../files/static2") %>%
   pr_filter("api_filters", api_filters,
     serializer = serializer_unboxed_json())
 gr$registerHooks(# logging ref. https://github.com/sol-eng/plumber-logging
