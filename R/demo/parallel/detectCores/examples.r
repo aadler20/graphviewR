@@ -1,2 +1,0 @@
-detectCores()
-detectCores(logical = FALSE)

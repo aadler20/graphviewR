@@ -171,13 +171,40 @@ package_table <- function(req, res) {
   }
   list(data = dat)
 }
+
 get_package_demo <- get("get_package_demo")
 package_demo <- function(req, res) {
   post_body <- jsonlite::fromJSON(req$postBody)
-  pkg <- post_body[["packageName"]]
-  print(pkg)
-  demo_data <- get_package_demo(pkg = pkg)
-  list(demo = demo_data$demo, fileDir = demo_data$fileDir)
+  local_packages <- post_body$localPackages
+  col_names <- post_body$colNames
+  dat <- data.frame()
+  if (nrow(local_packages) > 0) {
+    if (is.null(colnames(local_packages))) {
+      colnames(local_packages) <- col_names
+    }
+    if (is.null(rownames(local_packages))) {
+      rownames(local_packages) <- local_packages[, "Package"]
+    }
+    dat <- lapply(rownames(local_packages), function(x) {
+      demo <-  get_package_demo(x)
+      if (nrow(demo) > 0) {
+        return(list(Package = x,
+          Description = packageDescription(x)$Description, demo = demo))
+      }
+    })
+  }
+  # only return package with demos
+  dat <- dat[!sapply(dat, is.null)]
+  print(dat)
+  list(data = dat)
+}
+
+demo_code <- function(req, res) {
+  post_body <- jsonlite::fromJSON(req$postBody)
+  print(post_body)
+  print(post_body[["Item"]])
+  print(post_body[["Title"]])
+  list(demo = "1 + 1", fileDir = "C:/R")
 }
 
 # function
@@ -222,6 +249,7 @@ eval_code <- function(req, res) {
   code <- post_body[["code"]]
   code <- gsub("\r", "", code)
   code_exp <- parse(text = code)
+  print(code_exp)
   result <- vector("list", length(code_exp))
   for (i in seq_along(code_exp)) {
     result[[i]] <- try(eval(code_exp[i]), TRUE)
@@ -241,6 +269,7 @@ eval_code <- function(req, res) {
       return(list(RN = x, Class = class(rx), structure = str_df))
     }
   })
+  print(result)
   list(data = result)
 }
 save_code <- function(req, res) {
@@ -277,6 +306,8 @@ api_filters <- function(req, res) {
     local_packages(req, res)
   } else if (req$PATH_INFO == "/graphviewR/package/getPackageDemo") {
     package_demo(req, res)
+  } else if (req$PATH_INFO == "/graphviewR/package/getDemoCode") {
+    demo_code(req, res)
   } else if (req$PATH_INFO == "/graphviewR/package/getPackageGraph") {
     package_graph(req, res)
   } else if (req$PATH_INFO == "/graphviewR/package/getPackageInfo") {
