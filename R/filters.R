@@ -195,16 +195,17 @@ package_demo <- function(req, res) {
   }
   # only return package with demos
   dat <- dat[!sapply(dat, is.null)]
-  print(dat)
   list(data = dat)
 }
 
+get_demo_code <- get("get_demo_code")
 demo_code <- function(req, res) {
   post_body <- jsonlite::fromJSON(req$postBody)
-  print(post_body)
-  print(post_body[["Item"]])
-  print(post_body[["Title"]])
-  list(demo = "1 + 1", fileDir = "C:/R")
+  package_info <- post_body$packageInfo
+  topic <- package_info[["Item"]]
+  pkg <- package_info[["Package"]]
+  demo_file <- get_demo_code(topic, pkg)
+  list(demo = demo_file$demo, fileDir = demo_file$file_dir)
 }
 
 # function
@@ -249,7 +250,6 @@ eval_code <- function(req, res) {
   code <- post_body[["code"]]
   code <- gsub("\r", "", code)
   code_exp <- parse(text = code)
-  print(code_exp)
   result <- vector("list", length(code_exp))
   for (i in seq_along(code_exp)) {
     result[[i]] <- try(eval(code_exp[i]), TRUE)
@@ -269,7 +269,6 @@ eval_code <- function(req, res) {
       return(list(RN = x, Class = class(rx), structure = str_df))
     }
   })
-  print(result)
   list(data = result)
 }
 save_code <- function(req, res) {

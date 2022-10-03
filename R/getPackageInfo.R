@@ -95,7 +95,7 @@ get_function_graph <- function(pkg) {
 
 
 #' @param pkg package name
-#' @return package demo code
+#' @return package demo info
 #'
 get_package_demo <- function(pkg, lib.loc = NULL,
     verbose = getOption("verbose")) {
@@ -113,4 +113,19 @@ get_package_demo <- function(pkg, lib.loc = NULL,
   }
   colnames(db) <- c("Package", "LibPath", "Item", "Title")
   return(db = data.frame(db))
+}
+
+#' @param pkg package name
+#' @param topic topic
+#' @return  package demo code
+#'
+get_demo_code <- function(topic, pkg, lib.loc = NULL,
+    verbose = getOption("verbose")) {
+  path <- find.package(pkg, lib.loc, verbose = verbose)
+  path <- file.path(path, "demo")
+  file_dir <- basename(tools::list_files_with_type(path, "demo"))
+  file_dir <- file_dir[topic == tools::file_path_sans_ext(file_dir)]
+  file_dir <- file.path(path, file_dir)
+  demo_code <- paste(readLines(file_dir), collapse = "\n")
+  return(list(demo = demo_code, file_dir = file_dir))
 }
