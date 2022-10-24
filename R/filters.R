@@ -30,10 +30,13 @@ users <- get("users") # get user info from env settings
 auth_login <- function(req, res) {
   post_body <- jsonlite::fromJSON(req$postBody)
   userid <- post_body$"username"
+  print(userid)
   password <- post_body$"password"
+  print(password)
   if (userid %in% users$id &&
     password == users[users$id == userid, ]$password) {
     res$status <- 200 # success
+    # TODO: generate token using JWT
     list(result = list(token = userid))
   } else {
     res$status <- 401 # Unauthorized
@@ -53,7 +56,7 @@ auth_register <- function(req, res) {
       list(error = "Suggestion: The email already exists.")
     } else {
       new_user <- data.frame(id = userid, name = username,
-      username = username, password = password, role = "graphviewr",
+      username = username, password = password, role = "api",
       token = userid, avatar = username, create_time = Sys.time())
       data.table::fwrite(new_user, "data/users.csv", append = TRUE)
       users <<- rbind(users, new_user)
@@ -69,6 +72,7 @@ user_info <- function(req, res) {
     list(error = "Please login to get user info.")
   } else {
     res$status <- 200 # success
+    # TODO: decode token
     list(result = users[users$token == param, ])
   }
 }
@@ -292,57 +296,59 @@ has_internet <- function(req, res) {
 api_filters <- function(req, res) {
   print(req$PATH_INFO)
   # user
-  if (req$PATH_INFO == "/graphviewR/auth/login") {
+  if (req$PATH_INFO == "/api/auth/login") {
     auth_login(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/auth/register") {
+  } else if (req$PATH_INFO == "/api/auth/register") {
     auth_register(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/user/info") {
+  } else if (req$PATH_INFO == "/api/user/info") {
     user_info(req, res)
   # package
-  } else if (req$PATH_INFO == "/graphviewR/package/getFirstLetters") {
-    first_letters(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getLocalPackages") {
-    local_packages(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getPackageDemo") {
-    package_demo(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getDemoCode") {
+  } else if (req$PATH_INFO == "/api/package/getDemoCode") {
     demo_code(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getPackageGraph") {
+  } else if (req$PATH_INFO == "/api/package/getFirstLetters") {
+    first_letters(req, res)
+  } else if (req$PATH_INFO == "/api/package/getFunctionGraph") {
+    function_graph(req, res)
+  } else if (req$PATH_INFO == "/api/package/getLocalPackages") {
+    local_packages(req, res) 
+  } else if (req$PATH_INFO == "/api/package/getPackageDemo") {
+    package_demo(req, res)
+  } else if (req$PATH_INFO == "/api/package/getPackageGraph") {
     package_graph(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getPackageInfo") {
+  } else if (req$PATH_INFO == "/api/package/getPackageInfo") {
     package_info(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getPackageSimple") {
+  } else if (req$PATH_INFO == "/api/package/getPackageSimple") {
     package_simple(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/package/getPackageTable") {
+  } else if (req$PATH_INFO == "/api/package/getPackageTable") {
     package_table(req, res)
   # function
-  } else if (req$PATH_INFO == "/graphviewR/function/getFunctionExamples") {
+  } else if (req$PATH_INFO == "/api/function/getFunctionExamples") {
     function_examples(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/function/getFunctionHelp") {
+  } else if (req$PATH_INFO == "/api/function/getFunctionHelp") {
     function_help(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/function/getFunctionInfo") {
+  } else if (req$PATH_INFO == "/api/function/getFunctionInfo") {
     function_info(req, res)
   # task
-  } else if (req$PATH_INFO == "/graphviewR/task/list") {
+  } else if (req$PATH_INFO == "/api/task/list") {
     list_task(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/task/remove") {
+  } else if (req$PATH_INFO == "/api/task/remove") {
     remove_task(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/task/save") {
+  } else if (req$PATH_INFO == "/api/task/save") {
     save_task(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/task/update") {
+  } else if (req$PATH_INFO == "/api/task/update") {
     update_task(req, res)
   # log
-  } else if (req$PATH_INFO == "/graphviewR/log/hours") {
+  } else if (req$PATH_INFO == "/api/log/hours") {
     hours_log(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/log/list") {
+  } else if (req$PATH_INFO == "/api/log/list") {
     list_log(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/log/trend") {
+  } else if (req$PATH_INFO == "/api/log/trend") {
     trend_log(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/editor/eval") {
+  } else if (req$PATH_INFO == "/api/editor/eval") {
     eval_code(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/editor/save") {
+  } else if (req$PATH_INFO == "/api/editor/save") {
     save_code(req, res)
-  } else if (req$PATH_INFO == "/graphviewR/utils/hasInternet") {
+  } else if (req$PATH_INFO == "/api/utils/hasInternet") {
     has_internet(req, res)
   } else if (
     req$PATH_INFO == "/"
